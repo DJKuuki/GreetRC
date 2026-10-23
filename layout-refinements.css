@@ -1,0 +1,34 @@
+/* Page-specific layouts based on the reference site's different content types. */
+.pager>.eyebrow{border:0;border-radius:0;margin:0 0 7px;padding:0;display:block}
+.resource-hub{max-width:1180px;margin:22px auto 44px;padding:38px;border:1px solid #e3e3e5;border-radius:30px;box-shadow:0 22px 30px -25px #252c3a35}
+.resource-hub>.page-intro{text-align:center;padding:0 50px 22px}
+.resource-hub>.page-intro .title-line{justify-content:center}
+.resource-hub>.page-intro h1{font-size:60px;margin:18px 0 14px}
+.resource-hub>.page-intro p{margin:auto;font-size:15px;max-width:860px}
+.resource-hub>.page-intro .eyebrow{display:inline-block;background:#f2f2f3;border:1px solid #e0e0e2;border-radius:20px;padding:5px 13px;font-size:10px;letter-spacing:1px;margin:0}
+.resource-hub>.notice{justify-content:center;font-size:10px;margin-bottom:30px}
+.featured-panel{border:1px solid #e4e4e7;border-radius:24px;padding:20px}
+.featured-panel>.title-line{margin-bottom:14px}
+.featured-panel>.title-line p{max-width:380px;font-size:11px;margin-bottom:0}
+.featured-panel h2{font-size:18px;margin:0}
+.featured-panel .eyebrow{font-size:10px;letter-spacing:1px}
+.featured-panel .featured>a{background:white;padding:20px 17px;border-radius:18px}
+.featured-panel .featured h3{min-height:36px;line-height:1.7;margin:18px 0 12px}
+.featured-panel .featured p{font-size:12px;line-height:1.9;margin-bottom:25px}
+.resource-hub .stat-grid{margin:30px 0 0}
+.resource-hub .stat-grid p{font-size:11px;margin:8px 0 0}
+.resource-hub .stat-grid strong{font-size:23px}
+.resource-categories{max-width:1180px;margin:0 auto}
+.download-layout{display:block;max-width:1160px;margin:0 auto}
+.download-layout .side-tabs{display:flex;flex-wrap:wrap;position:static;gap:9px;padding-bottom:15px;border-bottom:1px solid #e7e9ee;margin-bottom:28px}
+.download-layout .side-tabs a{border:1px solid #e3e7ef;border-radius:9px;padding:10px 14px;color:#61718a}
+.download-layout .side-tabs a.active{background:#f0f0f1;color:#444;border-color:#dedee1}
+.download-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.download-card{display:block;padding:22px;min-height:280px;box-shadow:0 15px 25px -25px #314a7240}
+.download-card>.tool-icon{float:left;width:58px;height:58px;margin:0 14px 18px 0;font-size:16px}
+.download-card h2{font-size:14px;min-height:40px}
+.download-card p{clear:both;min-height:60px;padding-top:12px}
+.download-card .platforms{margin-top:26px}
+@media(max-width:1150px){.download-list{grid-template-columns:repeat(2,minmax(0,1fr))}.resource-hub{padding:25px}.resource-hub>.page-intro{padding-left:20px;padding-right:20px}}
+@media(max-width:880px){.pager>.eyebrow{display:none}.resource-hub{margin-top:0;padding:22px;border-radius:22px}.resource-hub>.page-intro h1{font-size:44px}.resource-hub>.page-intro p{font-size:13px}.featured-panel>.title-line>p{display:none}}
+@media(max-width:600px){.download-list{grid-template-columns:1fr}.download-card{min-height:230px}.download-card p{min-height:0}.resource-hub{padding:18px 13px}.resource-hub>.page-intro{padding:0 8px 18px}.resource-hub>.page-intro h1{font-size:36px}.resource-hub>.page-intro p{font-size:12px}.resource-hub>.notice{align-items:flex-start;font-size:9px;margin:0 7px 20px}.featured-panel{padding:13px;border-radius:17px}.featured-panel .featured>a{padding:14px 12px}.featured-panel .featured p{font-size:10px;margin-bottom:15px}.featured-panel .featured h3{font-size:12px;margin:13px 0 8px}.resource-hub .stat-grid{gap:5px}.resource-hub .stat-grid>div{padding:12px 8px}.resource-hub .stat-grid p{font-size:9px}.resource-hub .stat-grid span{font-size:9px}.resource-hub .stat-grid strong{font-size:20px}}
