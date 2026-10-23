@@ -1,4 +1,5 @@
 import {t, applyLanguage} from './i18n.js';
+import {routePath, siteHref, siteHTML} from './paths.js';
 import {shell,escapeHTML as esc,nav} from './shell.js';
 import {categories,posts,scenes,builds,battles,crashes,sections,articles,downloadCategories,downloads} from './data.js';
 
@@ -9,14 +10,15 @@ try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(saved&&typeof s
 function save(){localStorage.setItem(key,JSON.stringify(db));}
 function mutate(fn){const previous=JSON.stringify(db);try{fn();save();return true;}catch{db=JSON.parse(previous);toast('未能保存，浏览器存储可能已满。请缩小图片后重试。');return false;}}
 const allPosts=()=>[...db.posts,...posts],allBuilds=()=>[...db.builds,...builds],allBattles=()=>[...db.battles,...battles],allCrashes=()=>[...db.crashes,...crashes];
-const path=decodeURI(location.pathname).replace(/\/+$/,'')||'/';
+const path=routePath();
 const params=new URLSearchParams(location.search);
+params.delete('route');
 const main=document.getElementById('site-main');
 const me=()=>db.profile?.name||'本地飞友';
 const date=()=>new Date().toLocaleDateString('sv-SE');
 let toastTimer,uploadData='';
 function toast(text){const el=document.getElementById('toast');el.textContent=text;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.hidden=true,3500);}
-function url(changes={},base=path){const p=new URLSearchParams(location.search);for(const [k,v] of Object.entries(changes)){v===''||v==null?p.delete(k):p.set(k,String(v));}return base+(p.size?'?'+p.toString():'');}
+function url(changes={},base=path){const p=new URLSearchParams(location.search);p.delete('route');for(const [k,v] of Object.entries(changes)){v===''||v==null?p.delete(k):p.set(k,String(v));}return base+(p.size?'?'+p.toString():'');}
 const link=(href,text,cls='')=>`<a ${cls?`class="${cls}"`:''} href="${esc(href)}">${(String(href).includes('/local-')||href==='/users/demo')?userText(text):esc(text)}</a>`;
 const button=(text,action,attrs='',cls='btn')=>`<button type="button" class="${cls}" data-action="${action}" ${attrs}>${esc(text)}</button>`;
 const userText=value=>`<span translate="no">${esc(value)}</span>`;
@@ -95,7 +97,7 @@ function render(){shell();let html;const seg=path.split('/').filter(Boolean);
   else if(path==='/downloads')html=downloadPage();else if(seg[0]==='downloads'&&seg.length===2)html=toolDetail(seg[1]);
   else if(path==='/user-center')html=account(params.get('tab')==='settings'?'settings':'overview');else if(path==='/hangar')html=account('hangar');else if(path==='/favorites')html=account('favorites');else if(path==='/users/demo')html=publicProfile();else if(path==='/notifications')html=notifications();
   else if(['login','register','reset-password'].includes(seg[0])&&seg.length===1)html=auth(seg[0]);else if(path==='/pid/visualization')html=pid();else if(['about','privacy','changelog','app'].includes(seg[0])&&seg.length===1)html=infoPage(seg[0]);else if(path==='/sitemap')html=sitemap();else html=notFound();
-  main.innerHTML=html;document.title=(main.querySelector('h1')?.textContent||'页面未找到')+' · GREET RC技术交流平台';drawPID();
+  main.innerHTML=siteHTML(html);document.title=(main.querySelector('h1')?.textContent||'页面未找到')+' · GREET RC技术交流平台';drawPID();
   main.querySelector('textarea[name="bio"]')?.setAttribute('aria-label','个人介绍');
   applyLanguage();
 }
@@ -113,7 +115,7 @@ document.addEventListener('click',event=>{const target=event.target.closest('[da
   if(action==='read'&&mutate(()=>db.read=true)){render();toast('已全部标为已读');}
   if(action==='export')downloadFile('greet-rc-local-data.json',JSON.stringify(db,null,2),'application/json');
   if(action==='reset-data'&&confirm(t('清除当前浏览器内本演示的内容、草稿、收藏和资料？'))){if(mutate(()=>db=blank())){render();toast('已重置本地演示数据');}}
-  if(action==='logout'&&mutate(()=>db.profile=null)){location.href='/login';}
+  if(action==='logout'&&mutate(()=>db.profile=null)){location.href=siteHref('/login');}
   if(action==='pid-reset'){['p','i','d'].forEach((k,i)=>document.getElementById('pid-'+k).value=[45,30,25][i]);drawPID();}
 });
 document.addEventListener('input',event=>{if(event.target.id.startsWith('pid-'))drawPID();});
@@ -121,7 +123,7 @@ document.addEventListener('change',async event=>{if(event.target.id!=='image-upl
 document.addEventListener('submit',event=>{const form=event.target;if(!form.dataset.form)return;event.preventDefault();const data=formData(form),kind=form.dataset.form;
   if(kind==='reply'){if(!data.body)return;if(mutate(()=>{(db.replies[form.dataset.id]??=[]).push({author:me(),date:date(),body:data.body});})){render();toast('回复已发布到本地');}}
   if(kind==='profile'){if(mutate(()=>{db.profile={name:data.name,bio:data.bio};})){render();toast('资料已保存');}}
-  if(kind==='auth'){if(form.dataset.mode==='reset-password'){toast('恢复流程演示完成，没有修改任何真实账号');return;}if(mutate(()=>db.profile={name:data.name,bio:db.profile?.bio||'记录自己的配置、讨论和飞行经验。'}))location.href='/user-center';}
-  if(kind==='publish'){const type=form.dataset.type,error=document.getElementById('form-error');if(!data.title||!data.body){error.textContent='请填写标题和正文。';return;}if(type==='battle'&&data.left===data.right){error.textContent='请选择两套不同的配置。';return;}const id='local-'+crypto.randomUUID();let collection,route,item={...data,id,author:me(),date:date()};if(type==='post'){collection='posts';route='/discussion/';Object.assign(item,{views:0,replies:0,tags:'本地分享',image:uploadData});}if(type==='build'){collection='builds';route='/square/';Object.assign(item,{size:Number(data.size),kv:Number(data.kv),cost:Number(data.cost),description:data.body.slice(0,70),image:uploadData});}if(type==='battle'){collection='battles';route='/vs/';Object.assign(item,{status:'投票中',votes:[0,0]});}if(type==='crash'){collection='crashes';route='/crash-heaven/';item.size=Number(data.size);}if(mutate(()=>{db[collection].unshift(item);delete db.drafts[type];}))location.href=route+id;}
+  if(kind==='auth'){if(form.dataset.mode==='reset-password'){toast('恢复流程演示完成，没有修改任何真实账号');return;}if(mutate(()=>db.profile={name:data.name,bio:db.profile?.bio||'记录自己的配置、讨论和飞行经验。'}))location.href=siteHref('/user-center');}
+  if(kind==='publish'){const type=form.dataset.type,error=document.getElementById('form-error');if(!data.title||!data.body){error.textContent='请填写标题和正文。';return;}if(type==='battle'&&data.left===data.right){error.textContent='请选择两套不同的配置。';return;}const id='local-'+crypto.randomUUID();let collection,route,item={...data,id,author:me(),date:date()};if(type==='post'){collection='posts';route='/discussion/';Object.assign(item,{views:0,replies:0,tags:'本地分享',image:uploadData});}if(type==='build'){collection='builds';route='/square/';Object.assign(item,{size:Number(data.size),kv:Number(data.kv),cost:Number(data.cost),description:data.body.slice(0,70),image:uploadData});}if(type==='battle'){collection='battles';route='/vs/';Object.assign(item,{status:'投票中',votes:[0,0]});}if(type==='crash'){collection='crashes';route='/crash-heaven/';item.size=Number(data.size);}if(mutate(()=>{db[collection].unshift(item);delete db.drafts[type];}))location.href=siteHref(route+id);}
 });
 render();

@@ -68,7 +68,7 @@ export function setLanguage(next) {
 export function languageControl(){return '<select class="language-select" data-language-select translate="no"><option value="zh" lang="zh-CN">中文</option><option value="en" lang="en">English</option><option value="vi" lang="vi">Tiếng Việt</option></select>';}
 document.addEventListener('change',e=>{if(e.target.matches('[data-language-select]'))setLanguage(e.target.value);});
 // Keep link navigation in the active language, including filtered/paged URLs.
-document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a)return;const u=new URL(a.href);if(u.origin===location.origin&&!u.hash&&!/\.[a-z\d]+$/i.test(u.pathname)){u.searchParams.set('lang',language);a.href=u.href;}},true);
+document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a)return;const u=new URL(a.href);if(u.origin===location.origin&&!u.hash&&(!/\.[a-z\d]+$/i.test(u.pathname)||u.pathname.endsWith('/site.html'))){u.searchParams.set('lang',language);a.href=u.href;}},true);
 document.addEventListener('submit',e=>{if(e.target.method?.toLowerCase()==='get'){let input=e.target.querySelector('input[name="lang"]');if(!input){input=document.createElement('input');input.type='hidden';input.name='lang';e.target.append(input);}input.value=language;}},true);
 observer=new MutationObserver(()=>applyLanguage());
 applyLanguage();
