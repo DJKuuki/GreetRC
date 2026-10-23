@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><script src="/theme.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fafafa">
+  <title>GREET RC技术交流平台</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./shell.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/jsm/"}}</script>
+<link rel="stylesheet" href="/theme.css"></head>
+<body>
+  <header><a class="brand" href="./"><img class="brand-image" src="/assets/logo.jpg" alt="GREET RC" width="44" height="44"> GREET RC <span class="brand-light">技术交流平台</span></a><span class="offline"><i></i> 本地离线版</span></header>
+  <main>
+    <section class="intro"><p class="eyebrow">EXPLORE EVERY COMPONENT</p><h1>GREET RC<span>.</span></h1><p class="platform-name">技术交流平台</p><p class="subtitle">从一颗螺丝，到一整片天空。拆开看看你的穿越机。</p></section>
+    <section class="viewer" id="viewer" tabindex="0" aria-label="可交互的穿越机三维模型">
+      <div class="stage-meta"><div class="model-caption"><span>模型版本</span><strong id="model-version" aria-live="polite"></strong><small id="model-index"></small></div><span id="view-state">整机视图</span></div>
+      <div id="canvas-wrap"></div>
+      <button id="model-prev" class="model-arrow model-arrow-prev" aria-label="上一个机型" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M29 9 14 24l15 15M15 24h25"/></svg></button>
+      <button id="model-next" class="model-arrow model-arrow-next" aria-label="下一个机型" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m19 9 15 15-15 15M33 24H8"/></svg></button>
+      <span id="switch-status" class="sr-only" role="status"></span>
+      <div id="loading" role="status"><div class="spinner"></div><strong id="progress">正在加载本地模型…</strong><small>首次打开需要解码模型，请稍候</small></div>
+      <div id="tooltip" hidden></div>
+      <aside id="detail" hidden><button id="close-detail" aria-label="关闭部件说明">×</button><span class="eyebrow">COMPONENT INSIGHT</span><h2 id="part-title"></h2><p id="part-description"></p><span class="detail-note">点击其他部件，继续探索</span></aside>
+      <div class="toolbar"><button id="explode" class="primary" disabled>↗ 拆解模型</button><span class="divider"></span><button id="rotate" aria-pressed="true" disabled>暂停旋转</button><button id="reset" disabled>重置视角</button></div>
+      <div class="stage-bottom"><span>拖动旋转 · 滚轮缩放 · 点击认识部件</span><span class="axis-mark">Y ↑ &nbsp; X →</span></div>
+    </section>
+    <section class="parts-section"><div class="parts-heading"><h2>认识每一个部件</h2><span id="parts-count">14 COMPONENTS / 点击查看</span></div><div id="parts" class="parts"></div></section>
+  </main>
+  <footer><span>GREET RC <span class="muted">/ 离线交互演示</span></span><span>模型来源：花生 FPV · 本地复现</span></footer>
+  <script type="module" src="./app.js"></script>
+  <script type="module" src="./home-shell.js"></script>
+</body>
+</html>

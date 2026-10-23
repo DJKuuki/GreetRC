@@ -1,0 +1,23 @@
+{
+  "name": "fpv",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "start": "node server.cjs --open",
+    "test": "node tests/smoke.cjs && node tests/community.cjs",
+    "test:community": "node tests/community.cjs",
+    "test:i18n": "node tests/i18n-undefined.cjs && node tests/i18n.cjs && node tools/audit-i18n-routes.cjs"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "module",
+  "dependencies": {
+    "three": "0.182.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "draco3dgltf": "1.5.7",
+    "gltf-validator": "2.0.0-dev.3.10"
+  }
+}

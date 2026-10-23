@@ -1,0 +1,44 @@
+const {chromium,expect}=require('@playwright/test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const crypto=require('node:crypto');
+(async()=>{
+  const report=JSON.parse(fs.readFileSync('artifacts/model-edit-report.json','utf8'));
+  const source=fs.readFileSync('assets/fpv-drone3-v3.glb');
+  assert.equal(crypto.createHash('sha256').update(source).digest('hex'),report.sourceSHA256);
+  assert.equal(report.antennaBase[0],-report.newAntennaBase[0]);
+  assert.deepEqual(report.antennaBase.slice(1),report.newAntennaBase.slice(1));
+  assert.equal(report.antennaDirections[0][0],-report.antennaDirections[1][0]);
+  assert.deepEqual(report.antennaDirections[0].slice(1),report.antennaDirections[1].slice(1));
+  const browser=await chromium.launch({channel:'msedge',headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:1440,height:1200}});
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.goto('http://127.0.0.1:4173/?model=original');
+    await page.waitForFunction(()=>window.fpvDiagnostics?.().ready);
+    assert.equal(await page.evaluate(()=>fpvDiagnostics().parts.length),13);
+    await page.locator('#model-prev').click();
+    await page.waitForURL('**/?model=custom');
+    await page.waitForFunction(()=>window.fpvDiagnostics?.().ready);
+    assert.equal(await page.evaluate(()=>fpvDiagnostics().parts.length),14);
+    await page.locator('[data-part="wireless-extra"]').click();
+    await expect(page.locator('#part-title')).toHaveText('新增图传天线');
+    await page.getByLabel('关闭部件说明').click();
+    await page.getByRole('button',{name:'暂停旋转',exact:true}).click();
+    const canvas=await page.locator('canvas').boundingBox();
+    await page.mouse.move(canvas.x+canvas.width/2,canvas.y+canvas.height/2);
+    await page.mouse.wheel(0,-220);await page.waitForTimeout(500);
+    await page.mouse.move(20,20);
+    await page.locator('#viewer').screenshot({path:'artifacts/white-blue-preview.png'});
+    await page.getByRole('button',{name:'↗ 拆解模型',exact:true}).click();
+    await page.waitForFunction(()=>fpvDiagnostics().expanded&&!fpvDiagnostics().animating);
+    const before=await page.evaluate(()=>fpvDiagnostics().parts.find(p=>p.name==='wireless-extra'));
+    assert.notDeepEqual(before.position,before.origin);
+    await page.locator('#viewer').screenshot({path:'artifacts/white-blue-exploded.png'});
+    await page.getByRole('button',{name:'↙ 组装模型',exact:true}).click();
+    await page.waitForFunction(()=>!fpvDiagnostics().animating);
+    const after=await page.evaluate(()=>fpvDiagnostics().parts.find(p=>p.name==='wireless-extra'));
+    assert.deepEqual(after.position,after.origin);assert.deepEqual(errors,[]);
+    console.log('PASS: source preserved, original/custom switch, extra antenna selection, explode and restore.');
+  }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});
