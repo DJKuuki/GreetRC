@@ -1,5 +1,12 @@
 // Bundled UI catalog: Chinese | English | Vietnamese. No online translation.
 const catalog = `
+正在加载飞行体验|Preparing your flight experience|Đang chuẩn bị trải nghiệm bay
+加载进度|Loading progress|Tiến độ tải
+正在加载全部机型…|Loading the aircraft collection…|Đang tải tất cả mẫu máy bay…
+正在准备视觉效果…|Preparing the finishing touches…|Đang chuẩn bị hiệu ứng hình ảnh…
+准备就绪，即将起飞|Ready for takeoff|Sẵn sàng cất cánh
+加载中断，请检查网络后重试。|Loading was interrupted. Check your connection and try again.|Quá trình tải bị gián đoạn. Kiểm tra kết nối và thử lại.
+重新尝试|Try again|Thử lại
 上一个机型|Previous aircraft|Mẫu máy bay trước
 下一个机型|Next aircraft|Mẫu máy bay tiếp theo
 直升机 · 运动涂鸦|Helicopter · Graffiti sport|Trực thăng · Sơn graffiti

@@ -10,7 +10,11 @@ const versions = ['custom', 'original', 'fixed-wing', 'helicopter'];
 const modelNames = ['白蓝配色 · 双图传天线', '原始模型', '固定翼 · 运动涂装', '直升机 · 运动涂鸦'];
 const modelFiles = ['fpv-drone3-v3-white-blue.glb', 'fpv-drone3-v3.glb', 'fixed-wing-sport.glb', 'helicopter.glb'];
 let modelVersion = versions.includes(requestedModel) ? requestedModel : 'custom';
-let originalModel, fixedWing, helicopter, switching = false, resizePending = false;
+let originalModel, fixedWing, helicopter, switching = false, resizePending = false, bootComplete = false;
+const modelCache = new Map();
+const modelProgress = new Map(versions.map(version=>[version,0]));
+let decoder, loader, bootRunning = false;
+const nextFrame = () => new Promise(resolve=>requestAnimationFrame(resolve));
 const droneDefinitions = {
   Sketchfab_model: ['机架', '承载所有部件的结构骨架。碳纤维板和连接柱共同提供刚性，并保护内部电子设备。'],
   motor1: ['电机 1', '无刷电机带动螺旋桨转动，将电能转化为推力。四个电机的转速差控制飞行姿态。'],
@@ -73,10 +77,10 @@ function syncRotate() {
   $('rotate').textContent = controls.autoRotate ? '暂停旋转' : '自动旋转';
   $('rotate').setAttribute('aria-pressed', String(controls.autoRotate));
 }
-function poseForBounds(bounds, top = false) {
+function poseForBounds(bounds, top = false, version = modelVersion) {
   const target = bounds.getCenter(new THREE.Vector3());
   const vFov = THREE.MathUtils.degToRad(camera.fov);
-  const direction = top ? new THREE.Vector3(0,1,.015) : (fixedWing ? new THREE.Vector3(1.15,1.8,1.45) : new THREE.Vector3(1.8,1,1.65)).normalize();
+  const direction = top ? new THREE.Vector3(0,1,.015) : (version==='fixed-wing' ? new THREE.Vector3(1.15,1.8,1.45) : new THREE.Vector3(1.8,1,1.65)).normalize();
   direction.normalize();
   const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),direction).normalize();
   const up = new THREE.Vector3().crossVectors(direction,right).normalize();
@@ -199,7 +203,6 @@ async function init() {
     selectPart(hit(e));
   });
   resume();
-  installModel(await loadModel(modelVersion));
   $('model-prev').addEventListener('click',()=>switchModel(-1));
   $('model-next').addEventListener('click',()=>switchModel(1));
   $('viewer').addEventListener('keydown',event=>{
@@ -215,18 +218,89 @@ async function init() {
   $('reset').addEventListener('click',()=>transition(false,true));
   $('close-detail').addEventListener('click',()=>selectPart(null));
   document.addEventListener('keydown',e=>{if(e.key==='Escape')selectPart(null);});
-  window.fpvDiagnostics=()=>({ready,modelVersion,switching,expanded,orientation:model.quaternion.toArray(),flight:flight?{elapsed:flight.elapsed,direction:flight.direction,outgoingX:flight.outgoingX,incomingX:flight.incomingX,outgoingOrientation:flight.outgoing.object.quaternion.toArray(),incomingOrientation:model.quaternion.toArray(),outgoingVersion:flight.version}:null,rotorSpeed,rotors:rotors.map(r=>({name:r.mesh.name,axis:r.axis.toArray(),angle:r.node.quaternion.toArray(),pivot:r.node.position.toArray()})),animating:!!tween||switching,parts:parts.map(p=>({name:p.name,position:p.node.position.toArray(),origin:p.origin.toArray()})),camera:camera.position.toArray(),selected:selected?.name??null});
+  window.fpvDiagnostics=()=>({ready,modelVersion,switching,expanded,preload:{complete:bootComplete,prepared:[...modelProgress.values()].filter(value=>value===1).length,total:versions.length,progress:Object.fromEntries(modelProgress)},memory:{...renderer.info.memory,programs:renderer.info.programs.length},orientation:model?.quaternion.toArray()??null,flight:flight?{elapsed:flight.elapsed,direction:flight.direction,outgoingX:flight.outgoingX,incomingX:flight.incomingX,outgoingOrientation:flight.outgoing.object.quaternion.toArray(),incomingOrientation:model.quaternion.toArray(),outgoingVersion:flight.version}:null,rotorSpeed,rotors:rotors.map(r=>({name:r.mesh.name,axis:r.axis.toArray(),angle:r.node.quaternion.toArray(),pivot:r.node.position.toArray()})),animating:!!tween||switching,parts:parts.map(p=>({name:p.name,position:p.node.position.toArray(),origin:p.origin.toArray()})),camera:camera.position.toArray(),selected:selected?.name??null});
+  $('boot-retry').addEventListener('click',startExperience);
+  await startExperience();
 }
-async function loadModel(version) {
-  const draco = new DRACOLoader(); draco.setDecoderPath('./vendor/draco/');
-  const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
-  try { return await loader.loadAsync('./assets/'+modelFiles[versions.indexOf(version)]); }
-  finally { draco.dispose(); }
+function updateBootProgress() {
+  const progress=Math.floor([...modelProgress.values()].reduce((sum,value)=>sum+value,0)/versions.length*100);
+  $('boot-percent').textContent=String(progress).padStart(2,'0')+'%';
+  $('boot-progress-bar').style.transform=`scaleX(${progress/100})`;
+  document.querySelector('.boot-progress').setAttribute('aria-valuenow',String(progress));
 }
-function disposeModel(root) {
-  const resources = new Set();
-  root.traverse(node=>{if(node.isMesh){resources.add(node.geometry);for(const material of [].concat(node.material)){resources.add(material);for(const value of Object.values(material))if(value?.isTexture)resources.add(value);}}});
-  resources.forEach(resource=>resource.dispose());
+function loadModel(version) {
+  if(modelCache.has(version))return modelCache.get(version);
+  if(!loader){
+    decoder=new DRACOLoader().setDecoderPath('./vendor/draco/').setWorkerLimit(Math.max(1,Math.min(2,navigator.hardwareConcurrency||2)));
+    decoder.preload();
+    loader=new GLTFLoader().setDRACOLoader(decoder);
+  }
+  const promise=loader.loadAsync('./assets/'+modelFiles[versions.indexOf(version)],event=>{
+    if(event.lengthComputable){modelProgress.set(version,Math.max(modelProgress.get(version),event.loaded/event.total*.65));updateBootProgress();}
+  }).then(gltf=>{
+    const root=gltf.scene;root.scale.setScalar(.975);root.rotation.y=Math.PI;
+    if(version==='helicopter'){root.name='helicopter';paintHelicopter(root,renderer);}
+    const entry={scene:root,rotors:prepareRotors(root,version)};
+    modelProgress.set(version,.8);updateBootProgress();
+    return entry;
+  }).catch(error=>{modelCache.delete(version);throw error;});
+  modelCache.set(version,promise);
+  return promise;
+}
+async function warmModel(entry,version,target) {
+  const warmScene=new THREE.Scene();
+  scene.children.filter(node=>node.isLight).forEach(light=>{
+    const copy=light.clone();
+    copy.intensity=copy.isAmbientLight?(version==='original'?5:1.2):light.userData.baseIntensity*(version==='original'?1:.55);
+    warmScene.add(copy);
+  });
+  warmScene.add(entry.scene);entry.scene.updateMatrixWorld(true);
+  const view=camera.clone(),pose=poseForBounds(new THREE.Box3().setFromObject(entry.scene),false,version);
+  view.position.copy(pose.position);view.lookAt(pose.target);view.updateMatrixWorld(true);
+  const tone=renderer.toneMapping;
+  renderer.toneMapping=version==='original'?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;
+  try {
+    await renderer.compileAsync(warmScene,view);
+    // Draw once to upload geometry/textures, in addition to compiling shaders.
+    renderer.setRenderTarget(target);renderer.render(warmScene,view);
+    renderer.setRenderTarget(null);
+    // Compile the screen-output variant as well as the offscreen render variant.
+    await renderer.compileAsync(warmScene,view);
+    modelProgress.set(version,1);updateBootProgress();
+  } finally {renderer.setRenderTarget(null);renderer.toneMapping=tone;entry.scene.removeFromParent();}
+}
+async function startExperience() {
+  if(bootRunning||bootComplete)return;
+  bootRunning=true;$('boot-retry').hidden=true;$('boot-status').textContent='正在加载全部机型…';
+  $('experience-loader').setAttribute('aria-busy','true');
+  try {
+    const results=await Promise.allSettled(versions.map(loadModel));
+    const failed=results.find(result=>result.status==='rejected');
+    if(failed)throw failed.reason;
+    $('boot-status').textContent='正在准备视觉效果…';
+    const target=new THREE.WebGLRenderTarget(64,64);
+    try {
+      for(let i=0;i<versions.length;i++){
+        if(modelProgress.get(versions[i])<1){await nextFrame();await warmModel(results[i].value,versions[i],target);}
+      }
+    } finally {target.dispose();}
+    decoder?.dispose();
+    installModel(await loadModel(modelVersion));
+    renderer.render(scene,camera);
+    $('boot-status').textContent='准备就绪，即将起飞';
+    await nextFrame();
+    document.documentElement.classList.remove('experience-loading');
+    $('experience').inert=false;$('experience').removeAttribute('aria-hidden');
+    $('experience-loader').classList.add('is-leaving');
+    if(!reducedMotion)await new Promise(resolve=>setTimeout(resolve,400));
+    $('experience-loader').hidden=true;$('experience-loader').setAttribute('aria-busy','false');
+    bootComplete=true;ready=true;
+    for(const id of ['model-prev','model-next','explode','rotate','reset'])$(id).disabled=false;
+    resume();
+  } catch(error) {
+    console.error(error);$('boot-status').textContent='加载中断，请检查网络后重试。';
+    $('boot-retry').hidden=false;$('experience-loader').setAttribute('aria-busy','false');
+  } finally {bootRunning=false;}
 }
 function flightPose(object,view,version,direction){
   object.updateMatrixWorld(true);view.updateMatrixWorld(true);
@@ -264,7 +338,7 @@ async function switchModel(direction, version, updateURL=true) {
   $('switch-status').textContent='正在准备下一机型…';
   let previous;
   try {
-    // Keep the current aircraft still while fetching; all motion starts on the shared flight clock.
+    // All entries are already decoded, painted and warmed; reuse the same objects.
     const gltf = await loadModel(next);
     if(expanded){parts.forEach(p=>p.node.position.copy(p.origin));expanded=false;camera.position.copy(overview.position);controls.target.copy(overview.target);controls.update();}
     previous=model;
@@ -285,23 +359,22 @@ async function switchModel(direction, version, updateURL=true) {
       model.position.copy(incoming.position);model.quaternion.copy(incoming.rest);
       flight=null;
     }
-    departure.remove(previous);disposeModel(previous);previous=null;
+    departure.remove(previous);previous=null;
     if(updateURL){const url=new URL(location.href);url.searchParams.set('model',next);history.pushState(null,'',url);}
     $('switch-status').textContent=modelNames[versions.indexOf(next)];
   } catch(error) {
     console.error(error); $('switch-status').textContent='模型加载失败，请点击箭头重试。';
   } finally {
     if(flight){model.position.copy(flight.incoming.position);model.quaternion.copy(flight.incoming.rest);flight=null;}
-    if(previous&&previous!==model){previous.removeFromParent();disposeModel(previous);}
+    if(previous&&previous!==model)previous.removeFromParent();
     switching=false; controls.enabled=true; controls.autoRotate=!reducedMotion; syncRotate();
     for (const id of ['model-prev','model-next','explode','rotate','reset']) $(id).disabled=false;
     if(resizePending){resizePending=false;resize();}
   }
 }
-function installModel(gltf) {
-  model = gltf.scene; model.scale.setScalar(.975); model.rotation.y=Math.PI;
-  if (helicopter) { model.name='helicopter'; paintHelicopter(model,renderer); }
-  rotors=prepareRotors(model,modelVersion);
+function installModel(entry) {
+  model = entry.scene;model.position.set(0,0,0);model.scale.setScalar(.975);model.rotation.set(0,Math.PI,0);
+  rotors=entry.rotors;rotors.forEach(rotor=>rotor.node.quaternion.identity());
   renderer.toneMapping = originalModel ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure=.9;
   scene.children.filter(node=>node.isAmbientLight).forEach(light=>light.intensity=originalModel ? 5 : 1.2);
@@ -327,14 +400,13 @@ function installModel(gltf) {
   overview=poseForBounds(new THREE.Box3().setFromObject(model));
   camera.position.copy(overview.position); controls.target.copy(overview.target);
   const distance=camera.position.distanceTo(controls.target); controls.minDistance=distance*.25; controls.maxDistance=distance*5;
-  controls.update(); ready=true; $('loading').hidden=true;
-  for(const id of ['explode','rotate','reset']) $(id).disabled=switching;
-  for(const id of ['model-prev','model-next']) $(id).disabled=switching;
+  controls.update(); $('loading').hidden=true;
+  for(const id of ['explode','rotate','reset']) $(id).disabled=switching||!bootComplete;
+  for(const id of ['model-prev','model-next']) $(id).disabled=switching||!bootComplete;
 
 }
 init().catch(error=>{
-  console.error(error); $('loading').hidden=false;
-  $('loading').querySelector('.spinner')?.remove();
-  $('progress').textContent='模型加载失败';
-  $('loading').querySelector('small').textContent=`${error.message}。请通过“启动离线版.cmd”打开。`;
+  console.error(error);$('boot-status').textContent='加载中断，请检查网络后重试。';
+  $('experience-loader').setAttribute('aria-busy','false');
+  $('boot-retry').hidden=false;$('boot-retry').onclick=()=>location.reload();
 });

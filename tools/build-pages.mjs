@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
 import {posts, builds, battles, crashes, sections, articles, downloads} from '../data.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -12,8 +13,15 @@ fs.rmSync(output, {recursive: true, force: true});
 fs.mkdirSync(output);
 
 // Publish runtime files only, keeping development files out of the website.
-for (const file of fs.readdirSync(root)) {
-  if (/\.(js|css)$/.test(file)) fs.copyFileSync(path.join(root, file), path.join(output, file));
+const runtime = fs.readdirSync(root).filter(file=>/\.(js|css)$/.test(file)).sort();
+const checksum = createHash('sha256');
+for(const file of runtime)checksum.update(file).update(fs.readFileSync(path.join(root,file)));
+const revision = checksum.digest('hex').slice(0,12);
+for (const file of runtime) {
+  let source=fs.readFileSync(path.join(root,file),'utf8');
+  if(file.endsWith('.js'))source=source.replace(/(\bfrom\s+|\bimport\s*)(['"])(\.\/[^'"?]+\.js)\2/g,
+    (match,prefix,quote,url)=>runtime.includes(url.slice(2))?`${prefix}${quote}${url}?v=${revision}${quote}`:match);
+  fs.writeFileSync(path.join(output,file),source);
 }
 for (const folder of ['assets', 'vendor']) {
   fs.cpSync(path.join(root, folder), path.join(output, folder), {recursive: true});
@@ -23,7 +31,9 @@ fs.copyFileSync(path.join(root, 'LICENSE'), path.join(output, 'LICENSE'));
 function template(file) {
   return fs.readFileSync(path.join(root, file), 'utf8')
     .replace(/<base\b[^>]*>/gi, '')
-    .replace('<head>', `<head><base href="${base}"><meta name="greet-rc-static" content="true">`);
+    .replace('<head>', `<head><base href="${base}"><meta name="greet-rc-static" content="true">`)
+    .replace(/\b(src|href)="\.\/([^"?]+\.(?:js|css))"/g,
+      (match,attribute,asset)=>runtime.includes(asset)?`${attribute}="./${asset}?v=${revision}"`:match);
 }
 const home = template('index.html');
 const community = template('site.html');

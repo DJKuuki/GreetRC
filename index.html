@@ -1,16 +1,29 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="experience-loading">
 <head><script src="./theme.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#fafafa">
   <title>GREET RC技术交流平台</title>
   <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./boot.css">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./shell.css">
   <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/jsm/"}}</script>
 <link rel="stylesheet" href="./theme.css"></head>
 <body>
+  <section id="experience-loader" class="boot-screen" aria-label="正在加载飞行体验" aria-busy="true">
+    <div class="boot-top" translate="no"><span>GREET RC</span><span>THE ART OF FLIGHT</span></div>
+    <div class="boot-center">
+      <div class="boot-wordmark" translate="no" aria-label="GREET RC"><span>GREET</span><span>RC</span></div>
+      <div class="boot-caption" translate="no"><span>BUILT TO EXPLORE.</span><span>READY TO FLY.</span></div>
+      <div class="boot-progress" role="progressbar" aria-label="加载进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="boot-progress-bar"></span></div>
+      <div class="boot-status"><p id="boot-status" role="status">正在加载全部机型…</p><span id="boot-percent" translate="no">00%</span></div>
+      <button id="boot-retry" type="button" hidden>重新尝试</button>
+    </div>
+    <div class="boot-bottom" translate="no"><span>FROM A SINGLE PART<br>TO AN OPEN SKY.</span><span>TECHNICAL COMMUNITY<br>GREET RC — ONLINE EXPERIENCE</span></div>
+  </section>
+  <div id="experience" inert aria-hidden="true">
   <header><a class="brand" href="./"><img class="brand-image" src="./assets/logo.jpg" alt="GREET RC" width="44" height="44"> GREET RC <span class="brand-light">技术交流平台</span></a><span class="offline"><i></i> 本地离线版</span></header>
   <main>
     <section class="intro"><p class="eyebrow">EXPLORE EVERY COMPONENT</p><h1>GREET RC<span>.</span></h1><p class="platform-name">技术交流平台</p><p class="subtitle">从一颗螺丝，到一整片天空。拆开看看你的穿越机。</p></section>
@@ -29,6 +42,7 @@
     <section class="parts-section"><div class="parts-heading"><h2>认识每一个部件</h2><span id="parts-count">14 COMPONENTS / 点击查看</span></div><div id="parts" class="parts"></div></section>
   </main>
   <footer><span>GREET RC <span class="muted">/ 离线交互演示</span></span><span>模型来源：花生 FPV · 本地复现</span></footer>
+  </div>
   <script type="module" src="./app.js"></script>
   <script type="module" src="./home-shell.js"></script>
 </body>

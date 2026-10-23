@@ -8,6 +8,7 @@
     "build:pages": "node tools/build-pages.mjs",
     "deploy:pages": "node tools/deploy-pages.cjs",
     "test:pages": "npm run build:pages && node tests/pages.cjs",
+    "test:preload": "node tests/preload.cjs",
     "test": "node tests/smoke.cjs && node tests/community.cjs",
     "test:community": "node tests/community.cjs",
     "test:i18n": "node tests/i18n-undefined.cjs && node tests/i18n.cjs && node tools/audit-i18n-routes.cjs"

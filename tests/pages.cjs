@@ -44,6 +44,9 @@ const server = http.createServer((request, response) => {
 
     await go('');
     await page.waitForFunction(() => window.fpvDiagnostics?.().ready, {}, {timeout:90000});
+    await expect(page.locator('#experience-loader')).toBeHidden();
+    assert.equal(await page.evaluate(() => fpvDiagnostics().preload.prepared),4);
+    assert.ok(new URL(await page.locator('script[src*="app.js"]').getAttribute('src'),page.url()).searchParams.has('v'),'Deployed scripts must bypass stale application caches');
     assert.equal(await page.locator('.site-logo img').evaluate(image => image.naturalWidth > 0), true);
     await page.locator('#primary-nav').getByRole('link', {name:'讨论组', exact:true}).click();
     await expect(page.locator('#primary-nav [aria-current="page"]')).toHaveText('讨论组');
