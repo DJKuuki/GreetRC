@@ -1,7 +1,7 @@
-import {t, applyLanguage} from './i18n.js';
-import {routePath, siteHref, siteHTML} from './paths.js';
-import {shell,escapeHTML as esc,nav} from './shell.js';
-import {categories,posts,scenes,builds,battles,crashes,sections,articles,downloadCategories,downloads} from './data.js';
+import {t, applyLanguage} from './i18n.js?v=13c01ea2fe43';
+import {routePath, siteHref, siteHTML} from './paths.js?v=13c01ea2fe43';
+import {shell,escapeHTML as esc,nav} from './shell.js?v=13c01ea2fe43';
+import {categories,posts,scenes,builds,battles,crashes,sections,articles,downloadCategories,downloads} from './data.js?v=13c01ea2fe43';
 
 const key='fpv-community-v1';
 const blank=()=>({posts:[],builds:[],battles:[],crashes:[],replies:{},likes:[],favorites:[],votes:{},drafts:{},profile:null,read:false});

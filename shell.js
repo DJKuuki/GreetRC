@@ -1,5 +1,5 @@
-import {languageControl} from './i18n.js';
-import {routePath, siteHTML} from './paths.js';
+import {languageControl} from './i18n.js?v=13c01ea2fe43';
+import {routePath, siteHTML} from './paths.js?v=13c01ea2fe43';
 export const nav = [['/','首页'],['/app','App 下载'],['/square','广场'],['/vs','VS 对比'],['/crash-heaven','炸机记录'],['/discussion','讨论组'],['/resources','教程'],['/downloads','下载与资源']];
 export function escapeHTML(value=''){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 export function shell(){

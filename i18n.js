@@ -1,4 +1,4 @@
-import {messages} from './messages.js';
+import {messages} from './messages.js?v=13c01ea2fe43';
 export const languages = ['zh','en','vi'];
 const storageKey='greet-rc-language';
 let saved='zh';
